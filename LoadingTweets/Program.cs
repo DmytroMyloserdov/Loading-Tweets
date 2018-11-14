@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LoadingTweets
 {
@@ -10,8 +6,16 @@ namespace LoadingTweets
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Working...");
-            Console.ReadLine();
+            Console.WriteLine("USAGE");
+            Console.WriteLine("search -k [keyword] -n [numberOfTweets]");
+            Console.WriteLine("\t[keyword] - word that must contains in tweet");
+            Console.WriteLine("\t[numberOfTweets] - maximum amount of tweets need to be loaded");
+            Console.WriteLine();
+            Console.WriteLine("To exit from program type 'exit'");
+            Console.WriteLine();
+
+            var command = new Command();
+            command.ExecuteSearch();
         }
     }
 }
