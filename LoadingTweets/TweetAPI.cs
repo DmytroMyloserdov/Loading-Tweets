@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tweetinvi;
 using Tweetinvi.Models;
+using Tweetinvi.Parameters;
 
 namespace LoadingTweets
 {
@@ -18,7 +19,11 @@ namespace LoadingTweets
 
         public IEnumerable<ITweet> SearchTweetByKeyword(string keyword, int numberOfTweetsToLoad)
         {
-            return Search.SearchTweets(keyword).Take(numberOfTweetsToLoad);
+            var tweetSearchOptions = new SearchTweetsParameters(keyword)
+            {
+                MaximumNumberOfResults = numberOfTweetsToLoad
+            };
+            return Search.SearchTweets(tweetSearchOptions);
         }
     }
 }

@@ -1,8 +1,10 @@
-﻿using System;
+﻿using LoadingTweets.DbModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tweetinvi.Models;
 
 namespace LoadingTweets
 {
@@ -16,6 +18,7 @@ namespace LoadingTweets
         {
             var credentials = new CredentialsConfig();
             TweetAPI api = new TweetAPI(credentials);
+            SQLiteRepository repo = new SQLiteRepository(true);
 
             do
             {
@@ -37,12 +40,14 @@ namespace LoadingTweets
                 }
 
                 var tweets = api.SearchTweetByKeyword(Keyword, NumberOfTweets);
-                Console.WriteLine($"Found { tweets.Count() } tweets");
+                var insertedSearchId = repo.InsertNewSearchItem(new SearchModel(DateTime.Now, Keyword, NumberOfTweets));
+
+                repo.InsertManyNewTweetItems(TweetMap(tweets, insertedSearchId));
             }
             while (true);
         }
 
-        void GetCommandContext(string command)
+        private void GetCommandContext(string command)
         {
             var context = command.Split(' ').Where(str => str != "").ToList();
 
@@ -66,6 +71,16 @@ namespace LoadingTweets
             Keyword = context[kIndex + 1];
             int.TryParse(context[nIndex + 1], out int number);
             NumberOfTweets = number;
+        }
+
+        private IEnumerable<TweetModel> TweetMap(IEnumerable<ITweet> tweets, int searchId)
+        {
+            List<TweetModel> tweetModels = new List<TweetModel>();
+            foreach(var tweet in tweets)
+            {
+                tweetModels.Add(new TweetModel(tweet.CreatedBy.Name, tweet.Text, tweet.CreatedAt.ToString(), tweet.FavoriteCount, searchId));
+            }
+            return tweetModels;
         }
     }
 
