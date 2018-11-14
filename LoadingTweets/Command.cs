@@ -20,7 +20,7 @@ namespace LoadingTweets
         {
             var credentials = new CredentialsConfig();
             TweetAPI api = new TweetAPI(credentials);
-            SQLiteRepository repo = new SQLiteRepository(true);
+            SQLiteRepository repo = new SQLiteRepository();
 
             do
             {
