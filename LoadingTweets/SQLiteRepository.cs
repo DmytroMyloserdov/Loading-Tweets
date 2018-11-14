@@ -1,11 +1,10 @@
-﻿using System;
+﻿using LoadingTweets.DbModels;
+using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using LoadingTweets.DbModels;
 
 namespace LoadingTweets
 {
@@ -13,6 +12,10 @@ namespace LoadingTweets
     {
         SQLiteConnection _connection;
 
+        /// <summary>
+        /// Creates instance, creates connection and database file
+        /// </summary>
+        /// <param name="overWrite">Need to overwrite database</param>
         public SQLiteRepository(bool overWrite = false)
         {
             CreateDbFileIfNotExists(overWrite);
@@ -20,17 +23,13 @@ namespace LoadingTweets
             GenerateTablesIfNotExists();
         }
 
-        ~SQLiteRepository()
+        /// <summary>
+        /// Generates database file and overwrite it if need it
+        /// </summary>
+        /// <param name="overWrite">Need to overwrite database</param>
+        private void CreateDbFileIfNotExists(bool overwrite)
         {
-            if (_connection.State == System.Data.ConnectionState.Open)
-            {
-                _connection.Close();
-            }
-        }
-
-        private void CreateDbFileIfNotExists(bool overWrite)
-        {
-            if (!overWrite)
+            if (!overwrite)
             {
                 if (!File.Exists(@".\SearchResults.sqlite"))
                 {
@@ -42,6 +41,11 @@ namespace LoadingTweets
                 SQLiteConnection.CreateFile("SearchResults.sqlite");
             }
         }
+
+        /// <summary>
+        /// Builds connsection to database with search results
+        /// </summary>
+        /// <returns>Connection string</returns>
         private string BuildConnectionString()
         {
             SQLiteConnectionStringBuilder builder = new SQLiteConnectionStringBuilder();
@@ -50,6 +54,10 @@ namespace LoadingTweets
             builder.Version = 3;
             return builder.ToString();
         }
+
+        /// <summary>
+        /// Query for creating tables in database if they are not exist
+        /// </summary>
         private void GenerateTablesIfNotExists()
         {
             _connection.Open();
@@ -76,6 +84,11 @@ namespace LoadingTweets
             _connection.Close();
         }
 
+        /// <summary>
+        /// Inserts search action into database
+        /// </summary>
+        /// <param name="item">Database model af search action</param>
+        /// <returns>Id of inserted search action</returns>
         public int InsertNewSearchItem(SearchModel item)
         {
             int insertedId = -1;
@@ -101,27 +114,40 @@ namespace LoadingTweets
             return insertedId;
         }
 
+        /// <summary>
+        /// Inserts into database tweets
+        /// </summary>
+        /// <param name="tweets">Collections of mapped tweets</param>
         public void InsertManyNewTweetItems(IEnumerable<TweetModel> tweets)
         {
             _connection.Open();
             using (SQLiteCommand cmd = new SQLiteCommand(_connection))
             {
-                cmd.CommandText = BuildMultiInsertionQuery(tweets);
-                cmd.ExecuteNonQuery();
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+                using (var transaction = _connection.BeginTransaction())
+                {
+                    foreach (var tweet in tweets)
+                    {
+                        cmd.CommandText =
+                            $@"INSERT INTO `Tweets` 
+                            (`UserName`, `Text`, `Date`, `FavouriteCount`, `SearchId`) 
+                           VALUES 
+                            (@userName, @text, @date, @favouriteCount, @searchId)";
+                        cmd.Parameters.Add(new SQLiteParameter("@userName", tweet.UserName.Replace('\'', '`')));
+                        cmd.Parameters.Add(new SQLiteParameter("@text", tweet.Text.Replace('\'', '`')));
+                        cmd.Parameters.Add(new SQLiteParameter("@date", tweet.Date));
+                        cmd.Parameters.Add(new SQLiteParameter("@favouriteCount", tweet.FavouriteCount));
+                        cmd.Parameters.Add(new SQLiteParameter("@searchId", tweet.SearchId));
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit();
+                }
+                sw.Stop();
+                Console.WriteLine(sw.Elapsed.TotalSeconds);
             }
             _connection.Close();
-        }
-
-        private string BuildMultiInsertionQuery(IEnumerable<TweetModel> tweets)
-        {
-            StringBuilder builder = new StringBuilder("INSERT INTO `Tweets` (`UserName`, `Text`, `Date`, `FavouriteCount`, `SearchId`) VALUES ");
-            foreach (var tweet in tweets)
-            {
-                builder.Append($"('{ tweet.UserName.Replace('\'', '`') }', '{ tweet.Text.Replace('\'', '`') }', '{ tweet.Date }', { tweet.FavouriteCount }, { tweet.SearchId }), ");
-            }
-            builder.Remove(builder.Length - 2, 2);
-
-            return builder.ToString();
         }
     }
 }

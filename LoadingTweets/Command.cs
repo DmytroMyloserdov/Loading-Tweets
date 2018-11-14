@@ -13,7 +13,9 @@ namespace LoadingTweets
         public string Keyword { get; set; }
         public int NumberOfTweets { get; set; }
 
-
+        /// <summary>
+        /// Main function that call searching tweets and loading database
+        /// </summary>
         public void ExecuteSearch()
         {
             var credentials = new CredentialsConfig();
@@ -47,6 +49,10 @@ namespace LoadingTweets
             while (true);
         }
 
+        /// <summary>
+        /// Analyses command to get its data
+        /// </summary>
+        /// <param name="command">Command to be analysed</param>
         private void GetCommandContext(string command)
         {
             var context = command.Split(' ').Where(str => str != "").ToList();
@@ -68,11 +74,27 @@ namespace LoadingTweets
                 throw new UnknownCommandException("Not found flag '-n'");
             }
 
+            if (kIndex + 1 == nIndex)
+            {
+                throw new UnknownCommandException("Not fount value after '-k' flag");
+            }
+
+            if (nIndex + 1 == context.Count)
+            {
+                throw new UnknownCommandException("Not fount value after '-n' flag");
+            }
+
             Keyword = context[kIndex + 1];
             int.TryParse(context[nIndex + 1], out int number);
             NumberOfTweets = number;
         }
 
+        /// <summary>
+        /// Mapps tweet from TweetAPI to database model
+        /// </summary>
+        /// <param name="tweets">Collection of tweets</param>
+        /// <param name="searchId">id of search action</param>
+        /// <returns>Collection of mapped tweets</returns>
         private IEnumerable<TweetModel> TweetMap(IEnumerable<ITweet> tweets, int searchId)
         {
             List<TweetModel> tweetModels = new List<TweetModel>();
